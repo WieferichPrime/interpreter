@@ -24,20 +24,17 @@ class Leaf:
 class CheckSyntax:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.back = []
+        self.bufer = []
         self.height = 0
         self.advance()
-        self.back.clear()
+        self.exprs_token = []
+
 
     def advance(self):
         if (len(self.tokens) != 0):
             self.current_tok = self.tokens.pop(0)
-            self.back.append(self.current_tok)
+            self.bufer.append(self.current_tok)
         else: self.current_tok = ('', 'None', None)
-
-    def backup(self):
-        self.tokens = self.back + self.tokens
-        self.back.clear()
 
     def lang(self):
         lang = Node('lang')
@@ -45,32 +42,44 @@ class CheckSyntax:
             try:
                 self.height=1
                 lang.childs.append(self.expr())
-                self.back.clear()
+                if self.current_tok[1] != 'None':
+                    last = self.bufer.pop()
+                    self.exprs_token.append(self.bufer.copy())
+                    self.bufer.clear()
+                    self.bufer.append(last)
+                else:
+                    self.exprs_token.append(self.bufer.copy())
+                    self.bufer.clear()
             except:
-                self.error()
+                return 'Syntax error'
         return lang
 
     def expr(self):
         expr = Node('expr',height=self.height)
         self.height += 1
-        try:
-            expr.childs.append(self.assign_expr())
-            self.height -= 1
-            return expr
-        except:
-            self.backup()
+
+        if self.current_tok[1] == 'VAR':
+            try:
+                expr.childs.append(self.assign_expr())
+                self.height -= 1
+                return expr
+            except BaseException:
+                raise BaseException
+
+        if self.current_tok[1] == 'IF_KW':
             try:
                 expr.childs.append(self.if_expr())
                 self.height -= 1
                 return expr
-            except:
-                self.backup()
-                try:
-                    expr.childs.append(self.while_expr())
-                    self.height -= 1
-                    return expr
-                except BaseException:
-                    raise BaseException
+            except BaseException:
+                raise BaseException
+        if self.current_tok[1] == 'WHILE_KW':
+            try:
+                expr.childs.append(self.while_expr())
+                self.height -= 1
+                return expr
+            except BaseException:
+                raise BaseException
 
     def assign_expr(self):
         assign_expr = Node('assign_expr','=',self.height)
@@ -229,10 +238,6 @@ class CheckSyntax:
         except BaseException:
             raise BaseException
 
-    def error(self):
-        sys.stderr.write('Syntax error')
-        sys.exit(1)
-
     def check_next_t(self, values):
         if self.current_tok[1] not in values:
             raise BaseException
@@ -252,7 +257,7 @@ class Parser:
             self.current_tok = ('', None)
         return self.current_tok
 
-    def parse(self):
+    def rpn(self, tokens):
         while ((len(self.tokens) != 0) | (self.current_tok[1] != None)):
             if (self.current_tok[1] in ('VAR','INT','ELSE_KW')):
                 self.output.append(self.current_tok[0])

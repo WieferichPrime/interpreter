@@ -1,0 +1,34 @@
+lang -> expr+
+expr -> assign_expr | if_expr | while_expr
+assign_expr -> VAR ASSIGN_OP math_expr CLOSE
+value -> INT | VAR
+
+while_expr -> WHILE_KW if_head if_body
+
+
+if_expr -> IF_KW if_head if_body (ELSE_KW else_body)?
+if_head -> LP logical_expr RP
+if_body -> LB expr+ RB
+else_body -> LB expr+ RB
+
+
+
+logical_expr -> value (LOGICAL_OP logical_expr)*
+math_expr -> (value | math_expr_wbr)(OP math_expr)*
+math_expr_wbr -> LP math_expr RP
+
+
+new grammar:
+stmt → id = expression ;
+| if ( expression ) stmt
+| if ( expression ) stmt else stmt
+| while ( expression ) stmt
+| do stmt while ( expression ) ;
+| { stmts }
+stmts → stmt+
+expr → math_plus | math_minus | term
+math_plus -> expr + term
+math_minus -> expr - term
+term → term * factor | term / factor | factor
+factor → digit | ( expr )
+

@@ -28,6 +28,7 @@ class CheckSyntax:
         self.height = 0
         self.bufer = []
         self.index = -1
+        self.prev = 0
         self.advance()
 
     def advance(self):
@@ -37,17 +38,19 @@ class CheckSyntax:
 
     def lang(self):
         lang = Node('lang')
+        prev = 0
         while(self.index < len(self.tokens) - 1):
             try:
                 self.height=1
-                expr = self.expr()
+                expr = self.expr(prev)
                 lang.childs.append(expr)
                 lang.rpn += expr.rpn
+                prev += len(expr.rpn)
             except BaseException:
                 raise BaseException
         return lang
 
-    def expr(self):
+    def expr(self,prev):
         expr = Node('expr',height=self.height)
         self.height += 1
         if self.current_tok[1] == 'VAR':
@@ -62,7 +65,7 @@ class CheckSyntax:
 
         if self.current_tok[1] == 'IF_KW':
             try:
-                if_expr = self.if_expr()
+                if_expr = self.if_expr(prev)
                 expr.childs.append(if_expr)
                 expr.rpn  = if_expr.rpn
                 self.height -= 1
@@ -71,7 +74,7 @@ class CheckSyntax:
                 raise BaseException
         if self.current_tok[1] == 'WHILE_KW':
             try:
-                while_expr = self.while_expr()
+                while_expr = self.while_expr(prev)
                 expr.childs.append(while_expr)
                 expr.rpn = while_expr.rpn
                 self.height -= 1
@@ -170,7 +173,7 @@ class CheckSyntax:
             raise BaseException
 
 
-    def while_expr(self):
+    def while_expr(self, prev):
         while_expr = Node('while_expr', height=self.height)
         try:
             self.check_next_t('WHILE_KW')
@@ -178,13 +181,21 @@ class CheckSyntax:
             self.height += 1
             if_head = self.if_head()
             while_expr.childs.append(if_head)
-            if_head.rpn.append('_','!F')
+            if_head.rpn.append('end')
+            if_head.rpn.append('!F')
+            next_prev = prev + len(if_head.rpn)
             while_expr.rpn += if_head.rpn
             self.height += 1
-            if_body = self.if_body()
+            if_body = self.if_body(next_prev)
             while_expr.childs.append(if_body)
-            if_body.rpn.append('_','!')
+            if_body.rpn.append('start')
+            if_body.rpn.append('!')
             while_expr.rpn += if_body.rpn
+            for i in range(len(while_expr.rpn)):
+                if while_expr.rpn[i] == 'start':
+                    while_expr.rpn[i] = prev
+                if while_expr.rpn[i] == 'end':
+                    while_expr.rpn[i] = prev + len(while_expr.rpn)
             self.height-=1
             return while_expr
         except BaseException:
@@ -207,7 +218,7 @@ class CheckSyntax:
         except BaseException:
             raise BaseException
 
-    def if_expr(self):
+    def if_expr(self, prev):
         try:
             if_expr = Node('if_expr',height=self.height)
             self.check_next_t('IF_KW')
@@ -215,20 +226,35 @@ class CheckSyntax:
             self.height += 1
             if_head = self.if_head()
             if_expr.childs.append(if_head)
-            if_head.rpn.append('_')
+            if_head.rpn.append('else')
             if_head.rpn.append('!F')
+            next_prev = prev + len(if_head.rpn) # next_prev - элементов ДО для следующего уровня вложенности
             if_expr.rpn += if_head.rpn
             self.height += 1
-            if_body = self.if_body()
+            if_body = self.if_body(next_prev)
             if_expr.childs.append(if_body)
-            if_body.rpn.append('_')
+            if_body.rpn.append('end')
             if_body.rpn.append('!')
+            next_prev += len(if_body.rpn)
             if_expr.rpn += if_body.rpn
-
+            for i in range(len(if_expr.rpn)):
+                if if_expr.rpn[i] == 'else':
+                    if_expr.rpn[i] = prev + len(if_expr.rpn)
+                if if_expr.rpn[i] == 'end':
+                    if_expr.rpn[i] = prev + len(if_expr.rpn)
+                    end_index = i
             try:
                 self.check_next_t(('ELSE_KW'))
                 self.advance()
-                if_expr.childs.append(self.if_body())
+                try:
+                    else_if_body = self.if_body(next_prev)
+                    if_expr.childs.append(else_if_body)
+                    if_expr.rpn+=else_if_body.rpn
+                    for i in range(len(if_expr.rpn)):
+                        if i == end_index:
+                            if_expr.rpn[i] = prev + len(if_expr.rpn)
+                except BaseException:
+                    raise BaseException
             except:
                 pass
             self.height-=1
@@ -255,13 +281,13 @@ class CheckSyntax:
             raise BaseException
 
 
-    def if_body(self):
+    def if_body(self,prev):
         if_body = Node('if_body',height=self.height)
         self.height += 1
         try:
             self.check_next_t('LB')
             self.advance()
-            expr = self.expr()
+            expr = self.expr(prev)
             while(expr):
                 if_body.rpn += expr.rpn
                 if_body.childs.append(expr)

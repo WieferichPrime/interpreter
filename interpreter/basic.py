@@ -7,7 +7,13 @@ while str != 'exit':
         tokens = lex(str)
         parser = CheckSyntax(tokens)
         lang = parser.lang()
-        print(lang,lang.rpn)
+        print(lang)
+        for char in lang.rpn:
+            print(char,end = '\t')
+        print()
+        for i in range(len(lang.rpn)):
+            print(i,end = '\t')
+        print()
     except:
         print('Syntax error')
     str = input('>>> ')

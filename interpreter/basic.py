@@ -8,10 +8,14 @@ while str != 'exit':
         parser = CheckSyntax(tokens)
         lang = parser.lang()
         print(lang)
-        for expr in parser.exprs_token:
-            print(expr)
-        str = input('>>> ')
+        for char in lang.rpn:
+            print(char,end = '\t')
+        print()
+        for i in range(len(lang.rpn)):
+            print(i,end = '\t')
+        print()
     except:
-        pass
+        print('Syntax error')
+    str = input('>>> ')
 sys.exit(0)
 

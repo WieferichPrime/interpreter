@@ -7,11 +7,9 @@ while str != 'exit':
         tokens = lex(str)
         parser = CheckSyntax(tokens)
         lang = parser.lang()
-        print(lang)
-        for expr in parser.exprs_token:
-            print(expr)
-        str = input('>>> ')
+        print(lang,lang.rpn)
     except:
-        pass
+        print('Syntax error')
+    str = input('>>> ')
 sys.exit(0)
 

@@ -32,19 +32,22 @@ class CheckSyntax:
         self.advance()
 
     def advance(self):
-        if self.index < len(self.tokens) - 1:
+        if self.index < len(self.tokens):
             self.index += 1
-            self.current_tok = self.tokens[self.index]
+            if self.index == len(self.tokens):
+                self.current_tok = ('',None)
+            else:
+                self.current_tok = self.tokens[self.index]
 
     def lang(self):
         lang = Node('lang')
         prev = 0
-        while(self.index < len(self.tokens) - 1):
+        while(self.index < len(self.tokens)):
             try:
                 self.height=1
                 expr = self.expr(prev)
                 lang.childs.append(expr)
-                lang.rpn += expr.rpn
+                lang.rpn += expr.rpn.copy()
                 prev += len(expr.rpn)
             except BaseException:
                 raise BaseException
@@ -57,7 +60,7 @@ class CheckSyntax:
             try:
                 assign_expr = self.assign_expr()
                 expr.childs.append(assign_expr)
-                expr.rpn = assign_expr.rpn
+                expr.rpn = assign_expr.rpn.copy()
                 self.height -= 1
                 return expr
             except BaseException:
@@ -67,7 +70,7 @@ class CheckSyntax:
             try:
                 if_expr = self.if_expr(prev)
                 expr.childs.append(if_expr)
-                expr.rpn  = if_expr.rpn
+                expr.rpn  = if_expr.rpn.copy()
                 self.height -= 1
                 return expr
             except BaseException:
@@ -76,7 +79,7 @@ class CheckSyntax:
             try:
                 while_expr = self.while_expr(prev)
                 expr.childs.append(while_expr)
-                expr.rpn = while_expr.rpn
+                expr.rpn = while_expr.rpn.copy()
                 self.height -= 1
                 return expr
             except BaseException:
@@ -167,7 +170,7 @@ class CheckSyntax:
                 self.bufer.append(self.current_tok)
                 self.advance()
                 self.height-=1
-                math_expr_wbr.rpn = math_expr.rpn
+                math_expr_wbr.rpn = math_expr.rpn.copy()
                 return math_expr_wbr
         except BaseException:
             raise BaseException
@@ -182,20 +185,20 @@ class CheckSyntax:
             if_head = self.if_head()
             while_expr.childs.append(if_head)
             if_head.rpn.append('end')
-            if_head.rpn.append('!F')
+            if_head.rpn.append(('!F',None))
             next_prev = prev + len(if_head.rpn)
-            while_expr.rpn += if_head.rpn
+            while_expr.rpn += if_head.rpn.copy()
             self.height += 1
             if_body = self.if_body(next_prev)
             while_expr.childs.append(if_body)
             if_body.rpn.append('start')
-            if_body.rpn.append('!')
-            while_expr.rpn += if_body.rpn
+            if_body.rpn.append(('!',None))
+            while_expr.rpn += if_body.rpn.copy()
             for i in range(len(while_expr.rpn)):
                 if while_expr.rpn[i] == 'start':
-                    while_expr.rpn[i] = prev
+                    while_expr.rpn[i] = (prev,'INT')
                 if while_expr.rpn[i] == 'end':
-                    while_expr.rpn[i] = prev + len(while_expr.rpn)
+                    while_expr.rpn[i] = (prev + len(while_expr.rpn),'INT')
             self.height-=1
             return while_expr
         except BaseException:
@@ -227,21 +230,21 @@ class CheckSyntax:
             if_head = self.if_head()
             if_expr.childs.append(if_head)
             if_head.rpn.append('else')
-            if_head.rpn.append('!F')
+            if_head.rpn.append(('!F',None))
             next_prev = prev + len(if_head.rpn) # next_prev - элементов ДО для следующего уровня вложенности
-            if_expr.rpn += if_head.rpn
+            if_expr.rpn += if_head.rpn.copy()
             self.height += 1
             if_body = self.if_body(next_prev)
             if_expr.childs.append(if_body)
             if_body.rpn.append('end')
-            if_body.rpn.append('!')
+            if_body.rpn.append(('!',None))
             next_prev += len(if_body.rpn)
-            if_expr.rpn += if_body.rpn
+            if_expr.rpn += if_body.rpn.copy()
             for i in range(len(if_expr.rpn)):
                 if if_expr.rpn[i] == 'else':
-                    if_expr.rpn[i] = prev + len(if_expr.rpn)
+                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
                 if if_expr.rpn[i] == 'end':
-                    if_expr.rpn[i] = prev + len(if_expr.rpn)
+                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
                     end_index = i
             try:
                 self.check_next_t(('ELSE_KW'))
@@ -249,10 +252,10 @@ class CheckSyntax:
                 try:
                     else_if_body = self.if_body(next_prev)
                     if_expr.childs.append(else_if_body)
-                    if_expr.rpn+=else_if_body.rpn
+                    if_expr.rpn+=else_if_body.rpn.copy()
                     for i in range(len(if_expr.rpn)):
                         if i == end_index:
-                            if_expr.rpn[i] = prev + len(if_expr.rpn)
+                            if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
                 except BaseException:
                     raise BaseException
             except:
@@ -297,7 +300,7 @@ class CheckSyntax:
                     self.height -= 1
                     return if_body
                 except:
-                    expr = self.expr()
+                    expr = self.expr(prev)
         except BaseException:
             self.bufer.clear()
             raise BaseException
@@ -327,7 +330,7 @@ class Parser:
     def rpn(self):
         while ((len(self.tokens) != 0) | (self.current_tok[1] != None)):
             if (self.current_tok[1] in ('VAR','INT')):
-                self.output.append(self.current_tok[0])
+                self.output.append(self.current_tok)
                 self.advance()
             if self.is_func(self.current_tok):
                 self.stack.append(self.current_tok)
@@ -336,7 +339,7 @@ class Parser:
                 if (len(self.stack) != 0):
                     if self.is_op(self.stack[-1]):
                         if self.stack[-1][2] >= self.current_tok[2]:
-                            self.output.append(self.stack.pop()[0])
+                            self.output.append(self.stack.pop())
                 self.stack.append(self.current_tok)
                 self.advance()
             if (self.current_tok[1] in ('LP','LB')):
@@ -344,16 +347,16 @@ class Parser:
                 self.advance()
             if (self.current_tok[1] in ('RP','RB')):
                 while(self.stack[-1][1] not in ('LP','LB')):
-                    self.output.append(self.stack.pop()[0])
+                    self.output.append(self.stack.pop())
                     if (len(self.stack) == 0):
                         break
                 self.stack.pop()
                 self.advance()
                 if (len(self.stack) != 0):
                     if self.is_func(self.stack[-1]):
-                        self.output.append(self.stack.pop()[0])
+                        self.output.append(self.stack.pop())
         while(len(self.stack) != 0):
-            self.output.append(self.stack.pop()[0])
+            self.output.append(self.stack.pop())
         return self.output
 
     def is_op(self, t):

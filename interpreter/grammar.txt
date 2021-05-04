@@ -1,7 +1,14 @@
 lang -> expr+
-expr -> assign_expr | if_expr | while_expr
-assign_expr -> VAR ASSIGN_OP math_expr CLOSE
+expr -> assign_expr | if_expr | while_expr | function | method
+assign_expr -> VAR ASSIGN_OP (math_expr | function | method) CLOSE
 value -> INT | VAR
+
+function -> function_name LP args RP
+function_name -> LINKED_LIST_KW | VAR
+method -> VAR POINT function
+
+
+args = (value)*
 
 while_expr -> WHILE_KW if_head if_body
 
@@ -18,17 +25,8 @@ math_expr -> (value | math_expr_wbr)(OP math_expr)*
 math_expr_wbr -> LP math_expr RP
 
 
-new grammar:
-stmt → id = expression ;
-| if ( expression ) stmt
-| if ( expression ) stmt else stmt
-| while ( expression ) stmt
-| do stmt while ( expression ) ;
-| { stmts }
-stmts → stmt+
-expr → math_plus | math_minus | term
-math_plus -> expr + term
-math_minus -> expr - term
-term → term * factor | term / factor | factor
-factor → digit | ( expr )
+
+
+
+
 

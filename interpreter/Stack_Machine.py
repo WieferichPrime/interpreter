@@ -1,4 +1,4 @@
-
+from LinkedList import LinkedList
 
 class StackMachine:
     def __init__(self, input):
@@ -74,8 +74,6 @@ class StackMachine:
         else:
             self.advance()
 
-
-
     def run(self):
         try:
             while self.index < len(self.input):
@@ -122,6 +120,32 @@ class StackMachine:
                     pos = self.stack.pop()
                     f = self.stack.pop()
                     self.jmpf(pos, f)
-        except:
+                elif self.current_elem[1] in ('LINKED_LIST_KW','function_name'):
+                    args = []
+                    i = self.current_elem[2] # число параметров функции
+                    while(i != 0):
+                        args.insert(0, self.stack.pop())
+                        i -= 1
+                    if len(args) == 1:
+                        args = args[0]
+                    if self.current_elem[1] == 'LINKED_LIST_KW':
+                        self.stack.append(LinkedList(args))
+                        self.advance()
+                    elif self.current_elem[0] == 'push':
+                        self.variables[self.stack.pop()].push(args)
+                        self.advance()
+                    elif self.current_elem[0] == 'contains':
+                        self.stack.append(self.variables[self.stack.pop()].contains(args))
+                        self.advance()
+                    elif self.current_elem[0] == 'get':
+                        a = self.stack.pop()
+                        lst = self.variables[a]
+                        c = lst.get(args)
+                        self.stack.append(c)
+                        self.advance()
+                    elif self.current_elem[0] == 'remove':
+                        self.variables[self.stack.pop()].remove(args)
+                        self.advance()
+        except BaseException:
             raise BaseException
 

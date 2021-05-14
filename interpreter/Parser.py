@@ -1,19 +1,19 @@
 import sys
 
-class Node:
+class Node:#нетерминал
     def __init__(self, name = '', value = '',height = 0):
         self.childs = []
         self.name = name
         self.value = value
         self.height = height
         self.rpn = []
-    def __repr__(self):
+    def __repr__(self):#отображение дерева разбора
         str = ''
         for child in self.childs:
             str += "\t"*child.height + f'{child}'
         return f'{self.name}\n{str}'
 
-class Leaf:
+class Leaf:#терминал
     def __init__(self, name = '', value = '', height = 0):
         self.name = name
         self.value = value
@@ -26,9 +26,9 @@ class CheckSyntax:
     def __init__(self, tokens):
         self.tokens = tokens
         self.height = 0
-        self.buffer = []
+        self.buffer = []    #нужен для перевода в ПОЛИЗ операций присваивания, функций и методов
         self.index = -1
-        self.ret_index = 0
+        self.ret_index = 0  #индекс возврата
         self.advance()
 
     def advance(self):
@@ -143,7 +143,6 @@ class CheckSyntax:
             self.to_rpn(assign_expr)
             return assign_expr
         except BaseException:
-            #self.buffer.clear()
             raise BaseException
 
 
@@ -170,7 +169,6 @@ class CheckSyntax:
             self.height-=1
             return math_expr
         except BaseException:
-            #self.buffer.clear()
             raise BaseException
 
     def logical_expr(self):
@@ -267,22 +265,22 @@ class CheckSyntax:
             self.height += 1
             if_head = self.if_head()
             if_expr.childs.append(if_head)
-            if_head.rpn.append('else')
+            if_head.rpn.append('else') # метка перехода на else (или если нет else в конец)
             if_head.rpn.append(('!F',None))
             next_prev = prev + len(if_head.rpn) # next_prev - элементов ДО для следующего уровня вложенности
             if_expr.rpn += if_head.rpn.copy()
             self.height += 1
             if_body = self.if_body(next_prev)
             if_expr.childs.append(if_body)
-            if_body.rpn.append('end')
+            if_body.rpn.append('end')# метка перехода в конец
             if_body.rpn.append(('!',None))
             next_prev += len(if_body.rpn)
             if_expr.rpn += if_body.rpn.copy()
             for i in range(len(if_expr.rpn)):
                 if if_expr.rpn[i] == 'else':
-                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
+                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT') # подстановка значения для метки перед условием
                 if if_expr.rpn[i] == 'end':
-                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
+                    if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT') # подстановка значения для метки в конце if
                     end_index = i
             try:
                 self.check_next_t(('ELSE_KW'))
@@ -293,7 +291,7 @@ class CheckSyntax:
                     if_expr.rpn+=else_if_body.rpn.copy()
                     for i in range(len(if_expr.rpn)):
                         if i == end_index:
-                            if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT')
+                            if_expr.rpn[i] = (prev + len(if_expr.rpn),'INT') # если есть else - увеличивает метку end на его длину
                 except BaseException:
                     raise BaseException
             except:
@@ -318,7 +316,6 @@ class CheckSyntax:
             self.height -= 1
             return if_head
         except BaseException:
-            #self.buffer.clear()
             raise BaseException
 
 
@@ -340,7 +337,6 @@ class CheckSyntax:
                 except:
                     expr = self.expr(prev)
         except BaseException:
-            #self.buffer.clear()
             raise BaseException
 
     def method(self):

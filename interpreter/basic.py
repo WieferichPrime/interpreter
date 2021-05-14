@@ -6,6 +6,7 @@ str = input('>>> ')
 while str != 'exit':
     try:
         tokens = lex(str)
+        print(tokens)
         parser = CheckSyntax(tokens)
         lang = parser.lang()
         print(lang)

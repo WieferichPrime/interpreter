@@ -129,15 +129,13 @@ class CheckSyntax:
             self.advance()
             self.height += 1
             self.ret_index = self.index
-            try:
-                if self.current_tok[1] == 'VAR' and self.tokens[self.index + 1][1] == 'POINT':
-                    assign_expr.childs.append(self.method())
-                elif self.current_tok[1] in ('VAR', 'LINKED_LIST_KW'):
-                    assign_expr.childs.append(self.function())
-            except:
+            if self.current_tok[1] == 'VAR' and self.tokens[self.index + 1][1] == 'POINT':
+                assign_expr.childs.append(self.method())
+            elif self.current_tok[1] in ('VAR', 'LINKED_LIST_KW'):
+                assign_expr.childs.append(self.function())
+            else:
                 self.index = self.ret_index - 1
                 self.advance()
-                self.buffer.clear()
                 assign_expr.childs.append(self.math_expr())
             self.check_next_t('CLOSE')
             self.advance()
@@ -392,10 +390,13 @@ class CheckSyntax:
         self.height += 1
         try:
             value = self.value()
+            self.height += 1
+            args.childs.append(value)
             self.check_next_t('COMMA')
             self.advance()
             while (value):
                 value = self.value()
+                self.height += 1
                 args.childs.append(value)
                 self.check_next_t('COMMA')
                 self.advance()
